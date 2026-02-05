@@ -1,35 +1,22 @@
 name: Flutter Build APK
-
-on:
-  push:
-    branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
-
+on: [push]
 jobs:
   build:
     runs-on: ubuntu-latest
-
     steps:
       - uses: actions/checkout@v4
-
-      - name: Set up Java
-        uses: actions/setup-java@v4
-        with:
-          distribution: 'zulu'
-          java-version: '17'
 
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.13.0'
           channel: 'stable'
+          flutter-version: '3.13.0'
 
-      - name: Install dependencies
-        run: flutter pub get
+      # 부족한 안드로이드 구조를 자동으로 생성하는 핵심 명령어입니다.
+      - run: flutter create . --project-name=zombie_wars --platforms=android
 
-      - name: Build APK
-        run: flutter build apk --debug
+      - run: flutter pub get
+      - run: flutter build apk --debug
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
