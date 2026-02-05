@@ -1,5 +1,5 @@
-name: zombie_wars
-description: Multiplier Zombie Shooter
+name: zombie_wars  # 하이픈(-)을 언더바(_)로 수정했습니다.
+description: A new Flutter zombie game.
 publish_to: 'none'
 version: 1.0.0+1
 
@@ -9,7 +9,12 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  flame: ^1.8.0
+  flame: ^1.15.0  # 게임 엔진
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^2.0.0
 
 flutter:
   uses-material-design: true
