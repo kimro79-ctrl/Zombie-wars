@@ -1,7 +1,7 @@
 import 'dart:math';
 import 'package:flame/game.dart';
 import 'package:flame/components.dart';
-import 'package:flame/input.dart';
+import 'package:flame/events.dart'; // 수정된 부분
 import 'package:flutter/material.dart';
 
 void main() {
@@ -33,8 +33,8 @@ class ZombieGame extends FlameGame with PanDetector {
   }
 
   @override
-  void onPanUpdate(DragUpdateInfo info) {
-    player.position.x += info.delta.global.x;
+  void onPanUpdate(DragUpdateEvent info) { // DragUpdateInfo -> DragUpdateEvent로 수정
+    player.position.x += info.localDelta.x;
     player.position.x = player.position.x.clamp(0, size.x - player.size.x);
   }
 
