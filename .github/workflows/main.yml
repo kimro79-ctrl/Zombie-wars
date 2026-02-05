@@ -4,15 +4,20 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4 # 최신 버전으로 변경
+      - uses: actions/checkout@v4
       - uses: subosito/flutter-action@v2
         with:
           channel: 'stable'
           flutter-version: '3.13.0'
+          
+      # 부족한 안드로이드 폴더와 설정 파일들을 자동으로 생성하는 핵심 명령어!
+      - run: flutter create . --platforms=android
+      
       - run: flutter pub get
       - run: flutter build apk --debug
+      
       - name: Upload APK
-        uses: actions/upload-artifact@v4 # 최신 버전으로 변경
+        uses: actions/upload-artifact@v4
         with:
           name: ZombieGame-APK
           path: build/app/outputs/flutter-apk/app-debug.apk
