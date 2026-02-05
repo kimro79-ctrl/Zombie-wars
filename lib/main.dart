@@ -1,7 +1,7 @@
 import 'dart:math';
 import 'package:flame/game.dart';
 import 'package:flame/components.dart';
-import 'package:flame/events.dart'; // 수정된 부분
+import 'package:flame/events.dart'; // 이벤트 패키지 추가
 import 'package:flutter/material.dart';
 
 void main() {
@@ -32,9 +32,10 @@ class ZombieGame extends FlameGame with PanDetector {
     add(scoreText);
   }
 
+  // 이 부분이 에러의 핵심이었습니다. 타입을 정확히 맞췄습니다.
   @override
-  void onPanUpdate(DragUpdateEvent info) { // DragUpdateInfo -> DragUpdateEvent로 수정
-    player.position.x += info.localDelta.x;
+  void onPanUpdate(DragUpdateInfo info) {
+    player.position.x += info.delta.global.x;
     player.position.x = player.position.x.clamp(0, size.x - player.size.x);
   }
 
