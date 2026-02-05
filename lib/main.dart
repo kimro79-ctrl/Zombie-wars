@@ -10,33 +10,43 @@ void main() {
 
 class ZombieGame extends FlameGame with PanDetector {
   late RectangleComponent player;
+  late RectangleComponent fence;
   final List<RectangleComponent> clones = [];
   
   double spawnTimer = 0;
   double shootTimer = 0;
   double gameTime = 0; 
   double bossTimer = 0; 
-  int bossCount = 0; // 보스 출현 횟수 카운트
+  int bossCount = 0;
   int score = 0;
-  
-  double laserWidth = 8.0;
-  double shootInterval = 0.13;
+  int fenceHp = 100; // 펜스 체력
+
+  double laserWidth = 5.0; // 픽셀 축소에 맞춰 조정
+  double shootInterval = 0.12;
   Set<int> unlockedMilestones = {};
 
   late TextComponent statusText;
 
   @override
   Future<void> onLoad() async {
+    // 픽셀 크기 축소: 플레이어 30x30
     player = RectangleComponent()
-      ..size = Vector2(40, 40)
-      ..position = Vector2(size.x * 0.7, size.y - 120)
+      ..size = Vector2(30, 30)
+      ..position = Vector2(size.x * 0.7, size.y - 80)
       ..paint = (Paint()..color = Colors.cyan);
     add(player);
 
+    // 하단 1/3 지점 펜스 생성
+    fence = RectangleComponent()
+      ..size = Vector2(size.x * 0.6, 10)
+      ..position = Vector2(size.x * 0.4, size.y * 0.7)
+      ..paint = (Paint()..color = Colors.orange.withOpacity(0.8));
+    add(fence);
+
     statusText = TextComponent(
       text: '',
-      position: Vector2(size.x * 0.45, 40),
-      textRenderer: TextPaint(style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
+      position: Vector2(size.x * 0.42, 30),
+      textRenderer: TextPaint(style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
     );
     add(statusText);
 
@@ -49,8 +59,8 @@ class ZombieGame extends FlameGame with PanDetector {
   void addInventoryItem(String name, double yPos) {
     add(TextComponent(
       text: "[$name]",
-      position: Vector2(20, yPos),
-      textRenderer: TextPaint(style: const TextStyle(color: Colors.yellowAccent, fontSize: 16)),
+      position: Vector2(15, yPos),
+      textRenderer: TextPaint(style: const TextStyle(color: Colors.yellowAccent, fontSize: 14)),
     ));
   }
 
@@ -61,9 +71,9 @@ class ZombieGame extends FlameGame with PanDetector {
     player.position.x = player.position.x.clamp(size.x * 0.4, size.x - player.size.x);
     
     for (int i = 0; i < clones.length; i++) {
-      double offset = (i == 0) ? -50.0 : 50.0;
-      clones[i].position.x = (player.position.x + offset).clamp(size.x * 0.4, size.x - 30);
-      clones[i].position.y = player.position.y + 10;
+      double offset = (i == 0) ? -40.0 : 40.0;
+      clones[i].position.x = (player.position.x + offset).clamp(size.x * 0.4, size.x - 25);
+      clones[i].position.y = player.position.y + 5;
     }
   }
 
@@ -73,52 +83,59 @@ class ZombieGame extends FlameGame with PanDetector {
     gameTime += dt;
     bossTimer += dt;
 
-    // 점수별 무기 해금 및 화력 강화
     if (score >= 1000 && !unlockedMilestones.contains(1000)) {
-      unlockedMilestones.add(1000); addInventoryItem("🚀 바주카", 100); laserWidth = 18.0;
+      unlockedMilestones.add(1000); addInventoryItem("🚀 바주카", 100); laserWidth = 12.0;
     }
     if (score >= 5000 && !unlockedMilestones.contains(5000)) {
-      unlockedMilestones.add(5000); addInventoryItem("🚜 탱크", 150); laserWidth = 35.0; shootInterval = 0.10;
+      unlockedMilestones.add(5000); addInventoryItem("🚜 탱크", 150); laserWidth = 25.0; shootInterval = 0.09;
     }
-    if (score >= 15000 && !unlockedMilestones.contains(15000)) {
-      unlockedMilestones.add(15000); addInventoryItem("☢️ 핵미사일", 200); laserWidth = 90.0; shootInterval = 0.07;
+    if (score >= 20000 && !unlockedMilestones.contains(20000)) {
+      unlockedMilestones.add(20000); addInventoryItem("☢️ 핵미사일", 200); laserWidth = 70.0; shootInterval = 0.06;
     }
 
-    // 좀비 초반 군집 (매우 빠른 생성)
+    // 점수 비례 좀비 생성 가속 (기본 0.05초에서 점수가 오를수록 극도로 빨라짐)
     spawnTimer += dt;
-    if (spawnTimer > 0.06) {
-      double spawnX = (size.x * 0.42) + (Random().nextDouble() * (size.x * 0.58 - 35));
-      add(Zombie(Vector2(spawnX, -50), isBoss: false, bossGen: bossCount));
+    double scoreFactor = (score / 30000).clamp(0.0, 1.0);
+    double currentInterval = (0.05 - (scoreFactor * 0.04)).clamp(0.01, 0.05);
+    
+    if (spawnTimer > currentInterval) {
+      double spawnX = (size.x * 0.41) + (Random().nextDouble() * (size.x * 0.59 - 25));
+      add(Zombie(Vector2(spawnX, -30), isBoss: false, bossGen: bossCount));
       spawnTimer = 0;
     }
 
-    // 15초마다 강화되는 보스 등장
     if (bossTimer >= 15.0) {
-      bossCount++; // 보스 회차 증가
-      double spawnX = (size.x * 0.5) + (Random().nextDouble() * (size.x * 0.4 - 80));
-      add(Zombie(Vector2(spawnX, -80), isBoss: true, bossGen: bossCount));
+      bossCount++;
+      double spawnX = (size.x * 0.5) + (Random().nextDouble() * (size.x * 0.4 - 60));
+      add(Zombie(Vector2(spawnX, -60), isBoss: true, bossGen: bossCount));
       bossTimer = 0;
     }
 
-    // 분신 및 발사 로직 (생략 없는 핵심 로직)
     if (gameTime > 10 && clones.length < 1) {
-      final c = RectangleComponent()..size = Vector2(30,30)..paint=(Paint()..color=Colors.cyan.withOpacity(0.5));
+      final c = RectangleComponent()..size = Vector2(25,25)..paint=(Paint()..color=Colors.cyan.withOpacity(0.5));
       clones.add(c); add(c);
     }
     if (gameTime > 25 && clones.length < 2) {
-      final c = RectangleComponent()..size = Vector2(30,30)..paint=(Paint()..color=Colors.cyan.withOpacity(0.5));
+      final c = RectangleComponent()..size = Vector2(25,25)..paint=(Paint()..color=Colors.cyan.withOpacity(0.5));
       clones.add(c); add(c);
     }
 
     shootTimer += dt;
     if (shootTimer > shootInterval) {
-      add(Laser(Vector2(player.x + 20 - (laserWidth/2), player.y), laserWidth));
-      for (var c in clones) add(Laser(Vector2(c.x + 15 - (laserWidth*0.5/2), c.y), laserWidth * 0.5));
+      add(Laser(Vector2(player.x + 15 - (laserWidth/2), player.y), laserWidth));
+      for (var c in clones) add(Laser(Vector2(c.x + 12 - (laserWidth*0.5/2), c.y), laserWidth * 0.5));
       shootTimer = 0;
     }
     
+    // 펜스 파괴 체크 및 색상 변경
+    if (fenceHp <= 0 && fence.parent != null) {
+      fence.removeFromParent();
+    } else if (fenceHp > 0) {
+      fence.paint.color = Colors.orange.withOpacity((fenceHp / 100).clamp(0.2, 0.8));
+    }
+
     int remaining = max(0, 60 - gameTime.toInt());
-    statusText.text = 'TIME: ${remaining}s  BOSS: v$bossCount\nSCORE: $score';
+    statusText.text = 'TIME: ${remaining}s FENCE: $fenceHp%\nSCORE: $score';
   }
 }
 
@@ -127,25 +144,31 @@ class Zombie extends RectangleComponent with HasGameRef<ZombieGame> {
   int hp;
 
   Zombie(Vector2 pos, {required this.isBoss, required int bossGen}) 
-      : hp = isBoss ? (15 + (bossGen * 10)) : 1, // 보스는 회차당 10방씩 체력 증가
-        super(position: pos, size: isBoss ? Vector2(80, 80) : Vector2(30, 30)) {
-    paint = Paint()..color = isBoss ? Colors.purple : Colors.redAccent;
+      : hp = isBoss ? (25 + (bossGen * 15)) : (1 + (gameRef.score ~/ 10000)), 
+        super(position: pos, size: isBoss ? Vector2(60, 60) : Vector2(20, 20)) {
+    paint = Paint()..color = isBoss ? Colors.purpleAccent : Colors.redAccent;
   }
 
   @override
   void update(double dt) {
     super.update(dt);
-    double speed = isBoss ? 70 : 190 + (gameRef.gameTime * 2.5);
+    double speed = isBoss ? 60 : 220 + (gameRef.gameTime * 3);
     y += speed * dt;
+    
+    // 펜스 충돌 판정
+    if (gameRef.fenceHp > 0 && toRect().overlaps(gameRef.fence.toRect())) {
+      gameRef.fenceHp -= isBoss ? 10 : 1;
+      removeFromParent();
+    }
+
     if (y > gameRef.size.y) removeFromParent();
 
     gameRef.children.whereType<Laser>().forEach((laser) {
       if (toRect().overlaps(laser.toRect())) {
         hp--;
         laser.removeFromParent(); 
-        if (isBoss) paint.color = Colors.purple.withBlue((255 - (hp * 5)).clamp(0, 255));
         if (hp <= 0) {
-          gameRef.score += isBoss ? (500 * (hp + 1)) : 20; // 보스 보상도 증가
+          gameRef.score += isBoss ? 2000 : 30;
           removeFromParent();
         }
       }
@@ -154,13 +177,13 @@ class Zombie extends RectangleComponent with HasGameRef<ZombieGame> {
 }
 
 class Laser extends RectangleComponent {
-  Laser(Vector2 pos, double w) : super(position: pos, size: Vector2(w, 40)) {
-    paint = Paint()..color = Colors.yellowAccent..maskFilter = const MaskFilter.blur(BlurStyle.outer, 4);
+  Laser(Vector2 pos, double w) : super(position: pos, size: Vector2(w, 30)) {
+    paint = Paint()..color = Colors.yellow..maskFilter = const MaskFilter.blur(BlurStyle.outer, 3);
   }
   @override
   void update(double dt) {
     super.update(dt);
-    y -= 1150 * dt;
+    y -= 1200 * dt;
     if (y < -50) removeFromParent();
   }
 }
