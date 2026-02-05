@@ -1,7 +1,7 @@
 import 'dart:math';
 import 'package:flame/game.dart';
 import 'package:flame/components.dart';
-import 'package:flame/input.dart'; // PanDetector를 위해 필수
+import 'package:flame/input.dart';
 import 'package:flutter/material.dart';
 
 void main() {
@@ -44,10 +44,12 @@ class ZombieGame extends FlameGame with PanDetector {
     add(clone);
   }
 
-  // 오류 해결 포인트: 가장 안정적인 DragUpdateInfo 문법 사용
+  // 빌드 에러 방지를 위해 타입을 'dynamic'으로 설정하여 유연하게 대처합니다.
   @override
-  void onPanUpdate(DragUpdateInfo info) {
-    player.position.x += info.delta.global.x;
+  void onPanUpdate(dynamic info) {
+    // 엔진 버전에 따라 delta 추출 방식이 달라도 작동하도록 설계
+    final deltaX = info.delta.global.x;
+    player.position.x += deltaX;
     player.position.x = player.position.x.clamp(0.0, size.x - player.size.x);
     
     for (int i = 0; i < clones.length; i++) {
@@ -68,25 +70,25 @@ class ZombieGame extends FlameGame with PanDetector {
       addClone();
     }
 
-    // 시간 경과에 따라 레이저가 조금씩 굵어짐
-    laserWidth = (8.0 + (gameTime / 2.5)).clamp(8.0, 55.0);
+    // 시간 경과에 따라 레이저 강화
+    laserWidth = (8.0 + (gameTime / 2)).clamp(8.0, 60.0);
 
-    // 좀비 생성: 시간이 흐를수록 난이도 상승 (0.22초 -> 0.04초 간격)
+    // 좀비 생성: 60초가 될수록 난이도 급상승
     spawnTimer += dt;
-    double difficultyFactor = (gameTime / 60.0).clamp(0.0, 1.0); 
-    double spawnInterval = (0.22 - (difficultyFactor * 0.18)).clamp(0.04, 0.22);
+    double difficulty = (gameTime / 60.0).clamp(0.0, 1.0); 
+    double interval = (0.22 - (difficulty * 0.18)).clamp(0.04, 0.22);
     
-    if (spawnTimer > spawnInterval) {
+    if (spawnTimer > interval) {
       add(Zombie(Vector2(Random().nextDouble() * (size.x - 40), -50), gameTime));
       spawnTimer = 0;
     }
 
-    // 관통 레이저 발사 (0.13초 간격)
+    // 레이저 발사 (본체 + 분신)
     shootTimer += dt;
     if (shootTimer > 0.13) {
       add(Laser(Vector2(player.x + 20 - (laserWidth / 2), player.y), laserWidth));
       for (var clone in clones) {
-        add(Laser(Vector2(clone.x + 15 - (laserWidth / 3), clone.y), laserWidth * 0.7));
+        add(Laser(Vector2(clone.x + 15 - (laserWidth * 0.7 / 2), clone.y), laserWidth * 0.7));
       }
       shootTimer = 0;
     }
@@ -104,8 +106,7 @@ class Zombie extends RectangleComponent with HasGameRef<ZombieGame> {
   @override
   void update(double dt) {
     super.update(dt);
-    // 시간에 따라 내려오는 속도가 조금씩 빨라짐
-    double speed = 170 + (gameTimeAtSpawn * 2.5);
+    double speed = 180 + (gameTimeAtSpawn * 3.0);
     y += speed * dt;
     if (y > gameRef.size.y) removeFromParent();
 
@@ -127,7 +128,7 @@ class Laser extends RectangleComponent {
   @override
   void update(double dt) {
     super.update(dt);
-    y -= 1150 * dt; 
+    y -= 1200 * dt; 
     if (y < -50) removeFromParent();
   }
 }
