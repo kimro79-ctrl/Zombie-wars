@@ -1,0 +1,15 @@
+name: zombie_swarm
+description: Multiplier Zombie Shooter
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flame: ^1.8.0
+
+flutter:
+  uses-material-design: true
